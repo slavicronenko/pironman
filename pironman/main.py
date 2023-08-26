@@ -51,6 +51,9 @@ rgb_blink_speed = 50
 rgb_pwm_freq = 1000 # kHz
 
 temp_lower_set = 2 # celsius, lower the fan temperature setting ( fan_temp ), the fan will turn off
+temp_higher_set = 80 # celsius, higher the fan temperature setting ( fan_temp ), the fan will run at fool speed
+min_fan_pwm = 0 # fan idle speed, fan is not spinning by default
+max_fan_pwm = 100 # maximum fan speed, 100% by default
 
 config = ConfigParser()
 # check config_file
@@ -155,7 +158,21 @@ except Exception as e:
 # region: io control
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+GPIO.setup(fan_pin, GPIO.OUT)
 
+fan_pwm = GPIO.PWM(fan_pin, 100)  # Frequency: 100 Hz
+fan_pwm.start(0)  # Initialize with 0% duty cycle
+
+def sef_fan_speed(cpu_temp):
+    if cpu_temp < temp_lower_set:
+        duty_cycle = 0
+    elif cpu_temp > temp_higher_set:
+        duty_cycle = max_fan_pwm
+    else:
+        duty_cycle = min_fan_pwm + (max_fan_pwm - min_fan_pwm) * (cpu_temp - temp_lower_set) / (temp_higher_set - temp_lower_set)
+
+    fan_pwm.ChangeDutyCycle(duty_cycle)
+    
 def set_io(pin,val:bool):
     GPIO.setup(pin,GPIO.OUT)
     GPIO.output(pin,val)
@@ -163,14 +180,6 @@ def set_io(pin,val:bool):
 def get_io(pin):
     GPIO.setup(pin,GPIO.IN)
     return GPIO.input(pin)
-
-def fan_on():
-    global fan_pin
-    set_io(fan_pin,1)
-
-def fan_off():
-    global fan_pin
-    set_io(fan_pin,0)
 
 # endregion: io control
 
@@ -216,22 +225,7 @@ def main():
         CPU_temp_F = float(CPU_temp_C * 1.8 + 32) # fahrenheit
 
         # fan control
-        if temp_unit == 'C':
-            if CPU_temp_C > fan_temp:
-                fan_on()
-            elif CPU_temp_C < fan_temp - temp_lower_set:
-                fan_off()
-        elif temp_unit == 'F':
-            if CPU_temp_F > fan_temp:
-                fan_on()
-            elif CPU_temp_F < fan_temp - temp_lower_set*1.8:
-                fan_off()
-        else:
-            log('temp_unit error, use defalut value: 50\'C')
-            if CPU_temp_C > 50:
-                fan_on()
-            elif CPU_temp_C < 40:
-                fan_off()
+        sef_fan_speed(CPU_temp_C)
 
         # oled control
         if oled_ok:
