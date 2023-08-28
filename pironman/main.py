@@ -39,9 +39,13 @@ power_key_pin = 16
 fan_pin = 6
 rgb_pin = 12
 update_frequency = 0.5  # second
+temp_higher_set = 70 # starting from this temperature the fan will spin at full speed
+min_fan_pwm = 20 # minimum fan speed
+max_fan_pwm = 100 # maximum fan speed, 100% by default
 
 temp_unit = 'C' # 'C' or 'F'
 fan_temp = 50 # celsius
+fan_pwm = False # enables pwm fan mode
 screen_always_on = False
 screen_off_time = 60
 rgb_switch = True
@@ -49,11 +53,6 @@ rgb_style = 'breath'  # 'breath', 'leap', 'flow', 'raise_up', 'colorful'
 rgb_color = '#0a1aff'
 rgb_blink_speed = 50
 rgb_pwm_freq = 1000 # kHz
-
-temp_lower_set = 2 # celsius, lower the fan temperature setting ( fan_temp ), the fan will turn off
-temp_higher_set = 80 # celsius, higher the fan temperature setting ( fan_temp ), the fan will run at fool speed
-min_fan_pwm = 0 # fan idle speed, fan is not spinning by default
-max_fan_pwm = 100 # maximum fan speed, 100% by default
 
 config = ConfigParser()
 # check config_file
@@ -79,6 +78,11 @@ try:
     config.read(config_file)
     temp_unit = config['all']['temp_unit']
     fan_temp = float(config['all']['fan_temp'])
+    fan_pwm = config['all']['fan_pwm']
+    if fan_pwm == 'True':
+        fan_pwm = True
+    else:
+        fan_pwm = False
     screen_always_on = config['all']['screen_always_on']
     if screen_always_on == 'True':
         screen_always_on = True
@@ -97,6 +101,7 @@ try:
 except:
     config['all'] ={
                     'fan_temp':fan_temp,
+                    'fan_pwm':fan_pwm,
                     'screen_always_on':screen_always_on,
                     'screen_off_time':screen_off_time,
                     'rgb_switch':rgb_switch,
@@ -114,6 +119,7 @@ log("rgb_pin : %s"%rgb_pin)
 log("update_frequency : %s"%update_frequency)
 log("temp_unit : %s"%temp_unit)
 log("fan_temp : %s"%fan_temp)
+log("fan_pwm : %s"%fan_pwm)
 log("screen_always_on : %s"%screen_always_on)
 log("screen_off_time : %s"%screen_off_time)
 log("rgb_switch: %s"%rgb_switch)
@@ -160,18 +166,29 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 GPIO.setup(fan_pin, GPIO.OUT)
 
-fan_pwm = GPIO.PWM(fan_pin, 100)  # Frequency: 100 Hz
-fan_pwm.start(0)  # Initialize with 0% duty cycle
+fan_pwm_control = GPIO.PWM(fan_pin, 100)  # Frequency: 100 Hz
+fan_pwm_control.start(0)  # Initialize with 0% duty cycle
 
 def sef_fan_speed(cpu_temp):
-    if cpu_temp < temp_lower_set:
-        duty_cycle = 0
-    elif cpu_temp > temp_higher_set:
-        duty_cycle = max_fan_pwm
-    else:
-        duty_cycle = min_fan_pwm + (max_fan_pwm - min_fan_pwm) * (cpu_temp - temp_lower_set) / (temp_higher_set - temp_lower_set)
+    temp_lower_set = fan_temp;
 
-    fan_pwm.ChangeDutyCycle(duty_cycle)
+    if (temp_unit == 'F'):
+        temp_lower_set = (fan_temp - 32) * 5/9
+    
+    if fan_pwm:
+        if cpu_temp < temp_lower_set:
+            duty_cycle = 0
+        elif cpu_temp > temp_higher_set:
+            duty_cycle = max_fan_pwm
+        else:
+            duty_cycle = min_fan_pwm + (max_fan_pwm - min_fan_pwm) * (cpu_temp - temp_lower_set) / (temp_higher_set - temp_lower_set)
+    else:
+        if cpu_temp > temp_lower_set:
+            duty_cycle = max_fan_pwm
+        else:
+            duty_cycle = 0
+
+    fan_pwm_control.ChangeDutyCycle(duty_cycle)
     
 def set_io(pin,val:bool):
     GPIO.setup(pin,GPIO.OUT)
@@ -219,13 +236,12 @@ def main():
 
 
     while True:
-
         # CPU temp
         CPU_temp_C = float(getCPUtemperature()) # celcius
         CPU_temp_F = float(CPU_temp_C * 1.8 + 32) # fahrenheit
-
+        
         # fan control
-        sef_fan_speed(CPU_temp_C)
+        sef_fan_speed(float(CPU_temp_C))
 
         # oled control
         if oled_ok:

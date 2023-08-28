@@ -8,6 +8,8 @@
 # fan_temp, temperature at which the fan switches on,
 #           in celsius (default 50),in range (30 ~ 80)
 #
+# fan_pwm, enables pwm fan mode
+#
 # screen_off_time, screen off after <screen_off_time> seconds
 #
 # always_on,  [on/off], whether the screen is always on, default False
@@ -26,6 +28,7 @@
 
 temp_unit = C
 fan_temp = 50
+fan_pwm = False
 screen_always_on = False
 screen_off_time = 60
 rgb_switch = True

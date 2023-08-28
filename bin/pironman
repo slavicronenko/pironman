@@ -17,6 +17,7 @@
 ####                        C or F (Celsius/Fahrenheit)
 ####   -f,--fan         [ temp ], Temperature at which the fan switches on,
 ####                    in celsius (default 50),in range (30 ~ 80)
+####   -fp,--fan_pwm    [ on/off ], whether the fan pwm mode is enabled,
 ####   -al,--always_on  [on/off], whether the screen is always on,
 ####                    default False
 ####   -s,--staty_time  [time], screen display duration in second,
@@ -142,6 +143,22 @@ case "$1" in
                 echo "parameter must be integer"
             fi
         fi
+        ;;
+    -fp|--fan_pwm)
+        case "$2" in
+            on)
+                echo "set fan_pwm to on "
+                sed -i -e "s:fan_pwm.*=.*:fan_pwm = True:g" ${CONF}
+                restart
+            ;;
+            off)
+                echo "set fan_pwm to off "
+                sed -i -e "s:fan_pwm.*=.*:fan_pwm = False:g" ${CONF}
+                restart
+            ;;
+            *)
+                echo "usage: pironman -fp|--fan_pwm [on|off]"
+        esac
         ;;
     -al|--always_on)
         case "$2" in

@@ -1,3 +1,22 @@
+This fork adds "fan_pwm" parameter, which allows to use 5v PWM fans (such as Noctua NF-A4x10 4 pin) with the Pironman case.
+## Instructions
+1. Plug the fan (don't use fan pins on Pironman PCB, use GPIO instead). Fan PWN pin goes to GPIO #6, 5v to 5v, GND to GND (obviously).
+2. Install the Pironman software, but use this fork instead of SunFounder one
+```bash
+  sudo apt-get update
+  sudo apt-get install git -y
+  sudo apt-get install python3 python3-pip python3-setuptools -y
+  ```
+- Execute the installation script
+  ```bash
+  cd ~
+  git clone https://github.com/slavicronenko/pironman.git
+  cd ~/pironman
+  sudo python3 install.py
+  ```
+3. Enable PWM mode by typing `pironman -fp on` in the terminal
+
+
 # SunFounder Pironman for Raspberry Pi
 This repository is for SunFounder Pironman - A PC case for Raspberry Pi. you can buy it on [our website](https://www.sunfounder.com/products/raspberry-pi-4-case), or search sunfounder in Amazon.
 
@@ -56,7 +75,8 @@ Options:
   -u,--unit        [ C/F ], set the unit of temperature,
                        C or F (Celsius/Fahrenheit)
   -f,--fan         [ temp ], Temperature at which the fan switches on,
-                   in celsius (default 50),in range (30 ~ 80)
+                   in celsius (default 50),in range (30 ~ 80)     
+  -fp,--fan_pwm    [ on/off ], whether the fan pwm mode is enabled,
   -al,--always_on  [on/off], whether the screen is always on,
                    default False
   -s,--staty_time  [time], screen display duration in second,
